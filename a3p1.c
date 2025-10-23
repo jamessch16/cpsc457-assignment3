@@ -58,6 +58,7 @@ SimulationResults simulate_fifo(PageReference page_references[], int frame_count
 
     int page_faults = 0;
     int write_backs = 0;
+    SimulationResults return_values;
 
     // per frame window: need time of arrival (recorded via queue?), dirty bit, and page number
 
@@ -65,16 +66,47 @@ SimulationResults simulate_fifo(PageReference page_references[], int frame_count
         
     }
 
+    // return results
+    return_values.page_faults = page_faults;
+    return_values.write_backs = write_backs;
+
+    return return_values;
 }
 
 
 SimulationResults simulate_optimal(PageReference page_references[], int frame_count) {
-    
+
+    int page_faults = 0;
+    int write_backs = 0;
+    SimulationResults return_values;
+
+
+    // simulations here
+
+    // return results
+    return_values.page_faults = page_faults;
+    return_values.write_backs = write_backs;
+
+    return return_values;
+
 }
 
 SimulationResults simulate_clock(PageReference page_references[], int num_reference_bits, int interrupt_period) {
 
     int reference_bits[NUM_PAGES] = {0};
+    int page_faults = 0;
+    int write_backs = 0;
+    SimulationResults return_values;
+
+
+    // simulation here
+
+    // return results
+    return_values.page_faults = page_faults;
+    return_values.write_backs = write_backs;
+
+    return return_values;
+
 }
 
 

@@ -9,8 +9,8 @@ typedef struct PageReference {
 } PageReference;
 
 typedef struct SimulationResults {
-    int page_faults = 0;
-    int write_backs = 0;
+    int page_faults;
+    int write_backs;
 } SimulationResults;
 
 void read_input(PageReference page_references []);

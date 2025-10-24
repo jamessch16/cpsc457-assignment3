@@ -26,7 +26,9 @@ typedef struct SimulationResults {
 
 void read_input(PageReference page_references[]);
 void next_line(FILE *filestream);
-
+SimulationResults simulate_fifo(PageReference page_references[], int frame_count);
+SimulationResults simulate_optimal(PageReference page_references[], int frame_count);
+SimulationResults simulate_clock(PageReference page_references[], int num_reference_bits, int interrupt_period)
 
 
 // TODO CHECK NUM REFERENCES
@@ -62,8 +64,20 @@ void next_line(FILE *filestream) {
     }
 }
 
-
 SimulationResults simulate_fifo(PageReference page_references[], int frame_count) {
+    /*
+    Simulates a FIFO page replacement scheme given a reference string and a specified number of memory frames
+    
+    args:
+    page_references: the reference string
+    frame_count: the number of memory frames in the simulation
+
+    returns:
+    a SimulationResults structure which is a duple containing:
+        the number of page faults occuring in the simulation
+        the number of write backs occuring in the simulation    
+    */
+
 
     int page_faults = 0;
     int write_backs = 0;

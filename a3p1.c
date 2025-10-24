@@ -3,22 +3,36 @@
 #include <stdbool.h>
 #include <string.h>
 
+const int NUM_REFERENCES = 15000;   // TODO THIS NUBMER IS DIFFERENT in the input file
+const int NUM_PAGES = 500;          // number of pages in the input file
+
+
 typedef struct PageReference {
     int page_number;
     bool dirty;
 } PageReference;
+
+typedef struct MemoryFrame {
+    int page_number;
+    int time_of_arrival;
+    bool dirty;
+} MemoryFrame;
 
 typedef struct SimulationResults {
     int page_faults;
     int write_backs;
 } SimulationResults;
 
+typedef struct Queue {
+    PageReference pages[NUM_PAGES];
+    int front;
+    int back
+} Queue;
+
 void read_input(PageReference page_references []);
 void next_line(FILE *filestream);
 
 
-const int NUM_REFERENCES = 15000;   // TODO THIS NUBMER IS DIFFERENT in the input file
-const int NUM_PAGES = 500;          // number of pages in the input file
 
 // TODO CHECK NUM REFERENCES
 
@@ -60,11 +74,73 @@ SimulationResults simulate_fifo(PageReference page_references[], int frame_count
     int write_backs = 0;
     SimulationResults return_values;
 
-    // per frame window: need time of arrival (recorded via queue?), dirty bit, and page number
+    MemoryFrame memory_frames[frame_count];
 
-    for (int i = 0; i < NUM_REFERENCES; i++) {
-        
+    // initialize memory frames
+    for (int i = 0; i < frame_count; i++) {
+        memory_frames[i].page_number = -1;
+        memory_frames[i].time_of_arrival = INT_MAX;
+        memory_frames[i].dirty = 0;
     }
+
+
+    // simulate references
+    for (int time_step = 0; time_step < NUM_REFERENCES; time_step++) {
+
+        int called_page = page_references[time_step].page_number;
+        bool dirty_reference = page_references[time_step].dirty;
+
+        int oldest_page_index = -1;                 // this is the index of the memory frame with the oldest page
+        int oldest_page_arrival_time = INT_MAX;
+        bool need_replacement = true;
+
+        // iterate over memory frames to check if page is in memory
+        for (int i = 0; i < frame_count && need_replacement; i++) {
+
+            // if empty memory frame found
+            if (memory_frames[i].page_number == -1) {
+
+                need_replacement = false;
+                page_faults++;
+
+                // populate frame with page
+                memory_frames[i].page_number = called_page;
+                memory_frames[i].dirty = dirty_reference;
+                memory_frames[i].time_of_arrival = time_step;
+
+                // set oldest page if there is no known one
+                if (oldest_page_index == -1) {
+                    oldest_page_index = i;
+                    oldest_page_arrival_time = time_step;
+                }
+            }
+
+            // if the page is in memory
+            else if (memory_frames[i].page_number == called_page) {
+
+                need_replacement = false;
+                memory_frames[i].dirty |= dirty_reference;  // set dirty bit to true if necessary
+            }
+
+            // not the page we're looking for but oldest found page, update tracking variables
+            else if (oldest_page_arrival_time > memory_frames[i].time_of_arrival) {
+                oldest_page_index = i;
+                oldest_page_arrival_time = memory_frames[i].time_of_arrival;  
+            }
+        }
+
+        // perform page replacement if necessary
+        if (need_replacement) {
+
+            page_faults++;
+            if (memory_frames[oldest_page_index].dirty) write_backs++;
+
+            memory_frames[oldest_page_index].page_number = called_page;
+            memory_frames[oldest_page_index].dirty = dirty_reference;
+            memory_frames[oldest_page_index].time_of_arrival = time_step;
+        }
+    }
+
 
     // return results
     return_values.page_faults = page_faults;

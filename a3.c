@@ -2,15 +2,15 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <limits.h>
 
+#define NUM_PAGES 500         // This is the number of page IDs we can encounter
 const int NUM_REFERENCES = 15000;               // TODO THIS NUBMER IS DIFFERENT in the input file
-#define NUM_PAGES_MACRO 500
-const int NUM_PAGES = NUM_PAGES_MACRO;          // number of pages in the input file
 
 
 typedef struct PageReference {
     int page_number;
-    bool dirty;
+    int dirty;
 } PageReference;
 
 typedef struct MemoryFrame {
@@ -44,7 +44,7 @@ void read_input(PageReference page_references []) {
     next_line(stdin);  // TODO might not need this.
 
     for (int i = 0; i < NUM_REFERENCES; i++) {
-        scanf("%d,%d", page_references[i].page_number, page_references[i].dirty);  // TODO make this more robust
+        scanf("%d,%d", &page_references[i].page_number, &page_references[i].dirty);  // TODO make this more robust
     }
 }
 
@@ -169,6 +169,8 @@ SimulationResults simulate_clock(PageReference page_references[], int num_refere
     int write_backs = 0;
     SimulationResults return_values;
 
+
+    if(reference_bits[0]) page_faults = 0;     // TODO REMOVE THIS THIS IS JUST TO SUPRESS COMPILER WARNINGS
 
     // simulation here
 

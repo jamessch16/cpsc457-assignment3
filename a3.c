@@ -28,7 +28,7 @@ void read_input(PageReference page_references[]);
 void next_line(FILE *filestream);
 SimulationResults simulate_fifo(PageReference page_references[], int frame_count);
 SimulationResults simulate_optimal(PageReference page_references[], int frame_count);
-SimulationResults simulate_clock(PageReference page_references[], int num_reference_bits, int interrupt_period)
+SimulationResults simulate_clock(PageReference page_references[], int num_reference_bits, int interrupt_period);
 
 
 // TODO CHECK NUM REFERENCES

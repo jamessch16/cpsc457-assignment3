@@ -3,8 +3,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-const int NUM_REFERENCES = 15000;   // TODO THIS NUBMER IS DIFFERENT in the input file
-const int NUM_PAGES = 500;          // number of pages in the input file
+const int NUM_REFERENCES = 15000;               // TODO THIS NUBMER IS DIFFERENT in the input file
+#define NUM_PAGES_MACRO 500
+const int NUM_PAGES = NUM_PAGES_MACRO;          // number of pages in the input file
 
 
 typedef struct PageReference {
@@ -23,13 +24,7 @@ typedef struct SimulationResults {
     int write_backs;
 } SimulationResults;
 
-typedef struct Queue {
-    PageReference pages[NUM_PAGES];
-    int front;
-    int back
-} Queue;
-
-void read_input(PageReference page_references []);
+void read_input(PageReference page_references[]);
 void next_line(FILE *filestream);
 
 

@@ -346,7 +346,7 @@ int main(int argc, char *argv[]) {
         // vary reference bits, fixing interrupt period = 10
         for (int n_reference_bits = 1; n_reference_bits <= 32; n_reference_bits++) {
             sim_results = simulate_clock(page_references, n_reference_bits, 10);
-            printf("+%4d +%16d +%16d +", n_reference_bits, sim_results.page_faults, sim_results.write_backs);
+            printf("+%4d +%16d +%16d +\n", n_reference_bits, sim_results.page_faults, sim_results.write_backs);
             printf("+-----+-----------------+-----------------+\n");
         }
 

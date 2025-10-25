@@ -232,7 +232,6 @@ SimulationResults simulate_optimal(PageReference page_references[], int frame_co
             int oldest_found_toa = INT_MAX;
 
 
-
             // initialize array
             for (int i = 0; i < frame_count; i++) {
                 page_found[i] = false;
@@ -260,6 +259,11 @@ SimulationResults simulate_optimal(PageReference page_references[], int frame_co
                     }
                 }
             }
+
+            // replace page
+            memory_frames[oldest_found_index].page_number = called_page;
+            memory_frames[oldest_found_index].dirty = dirty_reference;
+            memory_frames[oldest_found_index].time_of_arrival = time_step;
 
             // record statistic
             page_faults++;

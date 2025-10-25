@@ -6,6 +6,7 @@
 #include <math.h>
 
 #define NUM_PAGES 500         // This is the number of page IDs we can encounter
+#define CLK_MEMORY_FRAMES 50
 const int NUM_REFERENCES = 15050;               // TODO THIS NUBMER IS DIFFERENT in the input file
 
 
@@ -192,16 +193,15 @@ SimulationResults simulate_clock(PageReference page_references[], int num_refere
         the number of write backs occuring in the simulation    
     */
 
-    const int FRAME_COUNT = 50;
-    int reference_bits[FRAME_COUNT] = {0};
+    int reference_bits[CLK_MEMORY_FRAMES] = {0};
     int page_faults = 0;
     int write_backs = 0;
     SimulationResults return_values;
 
-    MemoryFrame memory_frames[FRAME_COUNT];
+    MemoryFrame memory_frames[CLK_MEMORY_FRAMES];
 
     // initialize memory frames
-    for (int i = 0; i < FRAME_COUNT; i++) {
+    for (int i = 0; i < CLK_MEMORY_FRAMES; i++) {
         memory_frames[i].page_number = -1;
         memory_frames[i].time_of_arrival = INT_MAX;
         memory_frames[i].dirty = 0;
@@ -221,14 +221,14 @@ SimulationResults simulate_clock(PageReference page_references[], int num_refere
 
         // reset refence bits on interrupt period
         if (time_step % interrupt_period == 0) {
-            for (int i = 0; i < FRAME_COUNT; i++) {
+            for (int i = 0; i < CLK_MEMORY_FRAMES; i++) {
                 reference_bits[i] >>= 1;
             }
         }
 
 
         // iterate over memory frames to check if page is in memory
-        for (int i = 0; i < FRAME_COUNT && need_replacement; i++) {
+        for (int i = 0; i < CLK_MEMORY_FRAMES && need_replacement; i++) {
 
             // if empty memory frame found
             if (memory_frames[i].page_number == -1) {
@@ -242,7 +242,7 @@ SimulationResults simulate_clock(PageReference page_references[], int num_refere
                 memory_frames[i].time_of_arrival = time_step;
 
                 // sets the (num_reference_bits)-th bit of the called page to 1
-                reference_bits[called_page] = (1 << (num_reference_bits - 1));  
+                reference_bits[i] = (1 << (num_reference_bits - 1));  
 
                 // set oldest page if there is no known one
                 if (oldest_page_index == -1) {
@@ -258,7 +258,7 @@ SimulationResults simulate_clock(PageReference page_references[], int num_refere
                 memory_frames[i].dirty |= dirty_reference;  // set dirty bit to true if necessary
         
                 // sets the (num_reference_bits)-th bit of the called page to 1
-                reference_bits[called_page] |= (1 << (num_reference_bits - 1));  
+                reference_bits[i] |= (1 << (num_reference_bits - 1));  
             }
 
             // not the page we're looking for but oldest found page, update tracking variables

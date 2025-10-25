@@ -3,9 +3,10 @@
 #include <stdbool.h>
 #include <string.h>
 #include <limits.h>
+#include <math.h>
 
 #define NUM_PAGES 500         // This is the number of page IDs we can encounter
-const int NUM_REFERENCES = 15000;               // TODO THIS NUBMER IS DIFFERENT in the input file
+const int NUM_REFERENCES = 15050;               // TODO THIS NUBMER IS DIFFERENT in the input file
 
 
 typedef struct PageReference {
@@ -177,23 +178,117 @@ SimulationResults simulate_optimal(PageReference page_references[], int frame_co
 }
 
 SimulationResults simulate_clock(PageReference page_references[], int num_reference_bits, int interrupt_period) {
+    /*
+    Simulates a clock page replacement scheme with 50 memory frames given a reference string and 
+    a specified number of reference bits and interrupt period
+    
+    args:
+    page_references: the reference string
+    frame_count: the number of memory frames in the simulation
 
-    int reference_bits[NUM_PAGES] = {0};
+    returns:
+    a SimulationResults structure which is a duple containing:
+        the number of page faults occuring in the simulation
+        the number of write backs occuring in the simulation    
+    */
+
+    const int FRAME_COUNT = 50;
+    int reference_bits[FRAME_COUNT] = {0};
     int page_faults = 0;
     int write_backs = 0;
     SimulationResults return_values;
 
+    MemoryFrame memory_frames[FRAME_COUNT];
 
-    if(reference_bits[0]) page_faults = 0;     // TODO REMOVE THIS THIS IS JUST TO SUPRESS COMPILER WARNINGS
+    // initialize memory frames
+    for (int i = 0; i < FRAME_COUNT; i++) {
+        memory_frames[i].page_number = -1;
+        memory_frames[i].time_of_arrival = INT_MAX;
+        memory_frames[i].dirty = 0;
+    }
 
-    // simulation here
+
+    // simulate references
+    for (int time_step = 0; time_step < NUM_REFERENCES; time_step++) {
+
+        int called_page = page_references[time_step].page_number;
+        bool dirty_reference = page_references[time_step].dirty;
+
+        int oldest_page_index = -1;                 // this is the index of the memory frame with the oldest page
+        int oldest_page_arrival_time = INT_MAX;
+        int oldest_page_refence_bits = 0;
+        bool need_replacement = true;
+
+        // reset refence bits on interrupt period
+        if (time_step % interrupt_period == 0) {
+            for (int i = 0; i < FRAME_COUNT; i++) {
+                reference_bits[i] >>= 1;
+            }
+        }
+
+
+        // iterate over memory frames to check if page is in memory
+        for (int i = 0; i < FRAME_COUNT && need_replacement; i++) {
+
+            // if empty memory frame found
+            if (memory_frames[i].page_number == -1) {
+
+                need_replacement = false;
+                page_faults++;
+
+                // populate frame with page
+                memory_frames[i].page_number = called_page;
+                memory_frames[i].dirty = dirty_reference;
+                memory_frames[i].time_of_arrival = time_step;
+
+                // sets the (num_reference_bits)-th bit of the called page to 1
+                reference_bits[called_page] = (1 << (num_reference_bits - 1));  
+
+                // set oldest page if there is no known one
+                if (oldest_page_index == -1) {
+                    oldest_page_index = i;
+                    oldest_page_arrival_time = time_step;
+                }
+            }
+
+            // if the page is in memory
+            else if (memory_frames[i].page_number == called_page) {
+
+                need_replacement = false;
+                memory_frames[i].dirty |= dirty_reference;  // set dirty bit to true if necessary
+        
+                // sets the (num_reference_bits)-th bit of the called page to 1
+                reference_bits[called_page] |= (1 << (num_reference_bits - 1));  
+            }
+
+            // not the page we're looking for but oldest found page, update tracking variables
+            else if (oldest_page_refence_bits > reference_bits[i] || ( oldest_page_refence_bits == reference_bits[i] && oldest_page_arrival_time > memory_frames[i].time_of_arrival) ) {
+                oldest_page_refence_bits = reference_bits[i];
+                oldest_page_index = i;
+                oldest_page_arrival_time = memory_frames[i].time_of_arrival;  
+            }
+        }
+
+        // perform page replacement if necessary
+        if (need_replacement) {
+
+            page_faults++;
+            if (memory_frames[oldest_page_index].dirty) write_backs++;
+
+            memory_frames[oldest_page_index].page_number = called_page;
+            memory_frames[oldest_page_index].dirty = dirty_reference;
+            memory_frames[oldest_page_index].time_of_arrival = time_step;
+
+            reference_bits[oldest_page_index] = (1 << (num_reference_bits - 1));
+        }
+    }
+
 
     // return results
     return_values.page_faults = page_faults;
     return_values.write_backs = write_backs;
 
     return return_values;
-
 }
 
 

@@ -7,8 +7,7 @@
 
 #define NUM_PAGES 500         // This is the number of page IDs we can encounter
 #define CLK_MEMORY_FRAMES 50
-const int NUM_REFERENCES = 15050;               // TODO THIS NUBMER IS DIFFERENT in the input file
-
+const int NUM_REFERENCES = 15050;
 
 typedef struct PageReference {
     int page_number;
@@ -33,10 +32,6 @@ SimulationResults simulate_optimal(PageReference page_references[], int frame_co
 SimulationResults simulate_clock(PageReference page_references[], int num_reference_bits, int interrupt_period);
 
 
-// TODO CHECK NUM REFERENCES
-
-
-
 void read_input(PageReference page_references []) {
     /*
     Reads the input and populates the passed array with the data
@@ -44,11 +39,17 @@ void read_input(PageReference page_references []) {
     args: 
     page_references: a reference to an array to be populated with input data
     */
+    int suc = 1;
 
     next_line(stdin);  // TODO might not need this.
 
     for (int i = 0; i < NUM_REFERENCES; i++) {
-        scanf("%d,%d", &page_references[i].page_number, &page_references[i].dirty);  // TODO make this more robust
+        suc = scanf("%d,%d", &page_references[i].page_number, &page_references[i].dirty);  // TODO make this more robust
+
+        if (suc <= 0) {
+            fprintf(stderr, "ERROR: Invalid data input format. Please use 2 column 15051 row csv with integer entries and a header or add more lines");
+            exit(1);
+        }
     }
 }
 
@@ -162,13 +163,110 @@ SimulationResults simulate_fifo(PageReference page_references[], int frame_count
 
 
 SimulationResults simulate_optimal(PageReference page_references[], int frame_count) {
+    /*
+    Simulates a Optimal page replacement scheme given a reference string and a specified number of memory frames
+    
+    args:
+    page_references: the reference string
+    frame_count: the number of memory frames in the simulation
+
+    returns:
+    a SimulationResults structure which is a duple containing:
+        the number of page faults occuring in the simulation
+        the number of write backs occuring in the simulation    
+    */
+
 
     int page_faults = 0;
     int write_backs = 0;
     SimulationResults return_values;
 
+    MemoryFrame memory_frames[frame_count];
 
-    // simulations here
+    // initialize memory frames
+    for (int i = 0; i < frame_count; i++) {
+        memory_frames[i].page_number = -1;
+        memory_frames[i].time_of_arrival = INT_MAX;
+        memory_frames[i].dirty = 0;
+    }
+
+
+    // simulate references
+    for (int time_step = 0; time_step < NUM_REFERENCES; time_step++) {
+
+        int called_page = page_references[time_step].page_number;
+        bool dirty_reference = page_references[time_step].dirty;
+
+        bool need_replacement = true;
+        
+        // iterate over memory frames to check if page is in memory
+        for (int i = 0; i < frame_count && need_replacement; i++) {
+
+            // if empty memory frame found
+            if (memory_frames[i].page_number == -1) {
+
+                need_replacement = false;
+                page_faults++;
+
+                // populate frame with page
+                memory_frames[i].page_number = called_page;
+                memory_frames[i].dirty = dirty_reference;
+                memory_frames[i].time_of_arrival = time_step;
+            }
+
+            // if the page is in memory
+            else if (memory_frames[i].page_number == called_page) {
+
+                need_replacement = false;
+                memory_frames[i].dirty |= dirty_reference;  // set dirty bit to true if necessary
+            }
+        }
+
+        // perform page replacement if necessary
+        if (need_replacement) {
+
+            int num_pages_found = 0;        // the number of pages currently in memory that will be called again later in the reference string
+            bool page_found[frame_count];   // used to find page that will be used last when doing replacement
+            
+            int oldest_found_index = -1;
+            int oldest_found_toa = INT_MAX;
+
+
+
+            // initialize array
+            for (int i = 0; i < frame_count; i++) {
+                page_found[i] = false;
+            }
+
+            // find page in memory that will be used last
+            for (int i = time_step + 1; i < NUM_REFERENCES && num_pages_found < frame_count - 1; i++) {
+                for (int j = 0; j < frame_count; j++) {
+                    if (memory_frames[j].page_number == page_references[i].page_number && page_found[j] == false) {
+                        page_found[j] = true;
+                        num_pages_found++;
+                    }
+                }
+            }
+
+            for (int i = 0; i < frame_count; i++) {
+                if (page_found[i] == false) {
+                    if (oldest_found_index == -1) {
+                        oldest_found_index = i;
+                        oldest_found_toa = memory_frames[i].time_of_arrival;
+                    }
+                    else if (oldest_found_toa > memory_frames[i].time_of_arrival) {
+                        oldest_found_index = i;
+                        oldest_found_toa = memory_frames[i].time_of_arrival;
+                    }
+                }
+            }
+
+            // record statistic
+            page_faults++;
+            if (memory_frames[oldest_found_index].dirty) write_backs++;
+        }
+    }
+
 
     // return results
     return_values.page_faults = page_faults;
@@ -300,7 +398,10 @@ int main(int argc, char *argv[]) {
     read_input(page_references);
 
 
-
+    if (argc < 2) {
+        fprintf(stderr, "ERROR: No page replacement algorithm selected");
+        return 1;
+    }
 
     // FIFO simulation
     if (strcmp(argv[1], "FIFO") == 0) {
@@ -319,7 +420,7 @@ int main(int argc, char *argv[]) {
     }
     
     // Optimal simulation
-    if (strcmp(argv[1], "OPT") == 0) {
+    else if (strcmp(argv[1], "OPT") == 0) {
 
         // print output header
         printf("OPT\n");
@@ -327,6 +428,7 @@ int main(int argc, char *argv[]) {
         printf("+  Frames   +   Page Faults   +   Write-Backs   +\n");
         printf("+-----------+-----------------+-----------------+\n");
         
+        // simulate with varying number of memory frames 1-100
         for (int frame_count = 1; frame_count <= 100; frame_count++) {
             sim_results = simulate_optimal(page_references, frame_count);
             printf("+%10d +%16d +%16d +\n", frame_count, sim_results.page_faults, sim_results.write_backs);
@@ -335,7 +437,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Clock simulation
-    if (strcmp(argv[1], "CLK") == 0) {
+    else if (strcmp(argv[1], "CLK") == 0) {
 
         // print output header
         printf("CLK, m = 10\n");
@@ -343,7 +445,7 @@ int main(int argc, char *argv[]) {
         printf("+  n  +   Page Faults   +   Write-Backs   +\n");
         printf("+-----+-----------------+-----------------+\n");
         
-        // vary reference bits, fixing interrupt period = 10
+        // aimulate with varying reference bits 1-32, fixing interrupt period = 10
         for (int n_reference_bits = 1; n_reference_bits <= 32; n_reference_bits++) {
             sim_results = simulate_clock(page_references, n_reference_bits, 10);
             printf("+%4d +%16d +%16d +\n", n_reference_bits, sim_results.page_faults, sim_results.write_backs);
@@ -357,12 +459,17 @@ int main(int argc, char *argv[]) {
         printf("+  m  +   Page Faults   +   Write-Backs   +\n");
         printf("+-----+-----------------+-----------------+\n");
 
-        // vary interrupt period, fixing reference bits = 8
+        // simulate with varying interrupt period 1-100, fixing reference bits = 8
         for (int m_interrupt_period = 1; m_interrupt_period <= 100; m_interrupt_period++) {
             sim_results = simulate_clock(page_references, 8, m_interrupt_period);
             printf("+%4d +%16d +%16d +\n", m_interrupt_period, sim_results.page_faults, sim_results.write_backs);
             printf("+-----+-----------------+-----------------+\n");
         }
+    }
+
+    else {
+        fprintf(stderr, "ERROR: invalid page relacement algorithm");
+        return 1;
     }
 
     return 0;
